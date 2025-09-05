@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal or No Deal – 2-Case Edition (10 cases)</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --accent2:#a78bfa;
+      --text:#e5e7eb;
+      --subtle:#9ca3af;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: "Century Gothic", CenturyGothic, AppleGothic, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji","Segoe UI Emoji", sans-serif;
+      background: linear-gradient(135deg, #0b1023, #121735 60%, #0b1023);
+      color:var(--text);
+      display:flex; gap:16px;
+    }
+    aside{width:300px; background:var(--card); padding:16px; border-right:1px solid #222; overflow:auto}
+    main{flex:1; display:flex; flex-direction:column; gap:16px; padding:16px}
+
+    h1{font-size:22px; margin:0 0 6px}
+    .sub{color:var(--subtle); font-size:13px}
+
+    .toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+    button{
+      background:linear-gradient(180deg, #1d243d, #0e1330);
+      color:var(--text); border:1px solid #2b376a; padding:10px 12px; border-radius:10px; cursor:pointer;
+      transition:transform .05s ease, filter .15s ease; font-weight:600; font-size:14px; font-family: inherit;
+    }
+    button:hover{filter:brightness(1.2)}
+    button:active{transform:translateY(1px)}
+
+    .grid{display:grid; gap:18px; justify-content:center; align-content:start}
+    .pyramid{ --size:176px; row-gap:30px; }
+    .row{display:grid; grid-auto-flow:column; gap:33px; justify-content:center}
+
+    .case{ width:var(--size); height:var(--size); border-radius:14px; background:linear-gradient(160deg, #1f2a54, #0e1330); border:1px solid #324082; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,.35); user-select:none; perspective:800px }
+    .case .num{position:absolute; top:6px; left:8px; font-size:12px; color:#c7d2fe; opacity:.9}
+    .case.keepTag{position:absolute; top:6px; right:8px; font-size:11px; background:rgba(167,139,250,.15); border:1px solid var(--accent2); padding:2px 6px; border-radius:999px}
+
+    .card-inner{position:absolute; inset:0; transform-style:preserve-3d; transition: transform .6s}
+    .case.opened .card-inner{transform:rotateY(180deg)}
+
+    .card-face{position:absolute; inset:0; backface-visibility:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px}
+    .brief-svg{opacity:.9}
+    .face-back{transform:rotateY(180deg); background:radial-gradient(120px 90px at 50% 35%, rgba(255,255,255,.08), transparent 70%)}
+    .prize-img{width:96%; height:96%; object-fit:contain; background:#0b1030; padding:10px; border-radius:10px; border:1px solid #3b3b6d; box-shadow:0 6px 20px rgba(0,0,0,.4); margin-bottom:8px}
+    .prize-label{font-weight:700; text-align:center}
+    .pill{margin-top:6px; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid #3b3b6d; color:#dbeafe}
+
+    .legend{display:grid; gap:8px; margin-top:10px}
+    .legend .row{justify-content:start}
+    .badge{font-size:12px; padding:3px 8px; border-radius:999px; border:1px solid #2b376a; display:inline-block}
+    .LOW{background:rgba(52, 211, 153,.15); border-color:#34d399}
+    .MED{background:rgba(59,130,246,.15); border-color:#60a5fa}
+    .MEDHIGH{background:rgba(245,158,11,.15); border-color:#f59e0b}
+    .HIGH{background:rgba(248,113,113,.15); border-color:#f87171}
+
+    .sidebar-section{margin-bottom:16px}
+    .kvl{height:1px; background:#222; margin:10px 0}
+
+    .cases-list{display:grid; grid-template-columns:repeat(5, 1fr); gap:6px}
+    .chip{border:1px solid #2b376a; padding:6px 0; text-align:center; border-radius:8px; font-weight:700; font-size:12px}
+    .chip.open{opacity:.45; text-decoration:line-through}
+    .chip.kept{border-color:var(--accent2); background:rgba(167,139,250,.1)}
+
+    .toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#111827; border:1px solid #374151; padding:10px 14px; border-radius:10px; box-shadow:0 10px 24px rgba(0,0,0,.45); display:none}
+
+    .overlay{position:fixed; inset:0; pointer-events:none}
+    .ghost{position:fixed; width:176px; height:176px; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.45); border:1px solid #324082; background:linear-gradient(160deg, #1f2a54, #0e1330)}
+    .ghost .inner{position:absolute; inset:0; display:flex; align-items:center; justify-content:center}
+
+    .vis-hide{position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap}
+
+    @media (max-width:980px){
+      aside{display:none}
+      body{gap:0}
+      main{padding:10px}
+      .pyramid{--size:143px; row-gap:20px}
+      .row{gap:20px}
+      .ghost{width:143px; height:143px}
+    }
+  </style>
+</head>
+<body>
+  <aside id="sidebar">
+    <h2 style="margin:0 0 8px">Game Status</h2>
+    <div class="sidebar-section" id="phaseInfo" class="sub"></div>
+    <div class="kvl"></div>
+
+    <div class="sidebar-section">
+      <div class="sub" style="margin-bottom:6px">Remaining by tier</div>
+      <div id="remainingTiers" class="legend"></div>
+    </div>
+
+    <div class="kvl"></div>
+
+    <div class="sidebar-section">
+      <div class="sub" style="margin-bottom:6px">Cases</div>
+      <div id="casesChips" class="cases-list"></div>
+    </div>
+
+    <div class="kvl"></div>
+
+    <div class="sidebar-section">
+      <div class="sub" style="margin-bottom:6px">Opened prizes</div>
+      <div id="openedList" class="legend"></div>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <h1>Deal or No Deal – 2‑Case Edition (10 cases)</h1>
+      <div class="sub">Choose <b>two</b> cases to keep at the start. Open the rest, then reveal your kept cases.</div>
+    </header>
+
+    <div class="toolbar">
+      <button id="btnSetup">Edit prizes</button>
+      <button id="btnNew">Start new game (shuffle)</button>
+      <button id="btnReveal" disabled>Reveal kept cases</button>
+      <button id="btnMusic">Music: Off</button>
+      <label class="sub" style="border:1px dashed #374151; padding:8px 10px; border-radius:10px; cursor:pointer">
+        Upload Music
+        <input id="musicFile" type="file" accept="audio/*" class="vis-hide" />
+      </label>
+      <button id="btnClearMusic" class="sub">Clear Music</button>
+      <span class="sub" id="hint"></span>
+    </div>
+
+    <section class="grid pyramid" id="pyramid"></section>
+
+  </main>
+
+  <dialog id="setupDlg">
+    <div class="dlg-head" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #222">
+      <div>
+        <div style="font-weight:800">Prize Setup (editable)</div>
+        <div class="tiny" style="font-size:11px; color:#9ca3af">Exactly 10 items are required. Category counts must be 4 Low, 3 Med, 2 Med‑High, 1 High.</div>
+      </div>
+      <button id="closeSetup">✕</button>
+    </div>
+    <div class="dlg-body" style="padding:14px 16px; max-height:70vh; overflow:auto">
+      <div class="counts" id="countsBar" style="display:flex; gap:10px; margin-top:8px"></div>
+      <div class="grid-setup" style="display:grid; grid-template-columns: 60px 1fr 140px 120px 120px; gap:10px; align-items:center; margin-top:8px">
+        <div class="hdr" style="font-weight:700; color:#cbd5e1">#</div>
+        <div class="hdr" style="font-weight:700; color:#cbd5e1">Label (what the prize is)</div>
+        <div class="hdr" style="font-weight:700; color:#cbd5e1">Category</div>
+        <div class="hdr" style="font-weight:700; color:#cbd5e1">Photo</div>
+        <div class="hdr" style="font-weight:700; color:#cbd5e1">Preview</div>
+      </div>
+      <div id="setupRows"></div>
+
+      <div class="footer" style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
+          <button id="saveSetup">Save</button>
+          <button id="resetDefault">Reset to default</button>
+          <span class="sub">Saved setup is kept in your browser (localStorage).</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+          <button id="exportSetup">Export JSON</button>
+          <label style="display:inline-block; position:relative">
+            <span style="border:1px dashed #374151; padding:8px 10px; border-radius:10px">Import JSON</span>
+            <input type="file" id="importSetup" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer" />
+          </label>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <div id="overlay" class="overlay" aria-hidden="true"></div>
+  <!-- Hidden background audio element -->
+  <audio id="bgAudio" preload="auto" loop class="vis-hide"></audio>
+
+  <script>
+    /************** Background music (uploaded file preferred) **************/
+    let musicOn=false; let uploadedB64=null; let musicName=null; const MUSIC_KEY='dond2_music_b64'; const MUSIC_NAME_KEY='dond2_music_name';
+    const audioEl = document.getElementById('bgAudio');
+
+    function loadSavedMusic(){
+      try{
+        const b64 = localStorage.getItem(MUSIC_KEY);
+        const name = localStorage.getItem(MUSIC_NAME_KEY);
+        if(b64){ uploadedB64 = b64; musicName = name||'Your track'; audioEl.src = b64; }
+      }catch(e){}
+    }
+    function setMusicFromFile(file){
+      const reader = new FileReader();
+      reader.onload = (ev)=>{
+        uploadedB64 = String(ev.target.result); musicName = file.name;
+        try{ localStorage.setItem(MUSIC_KEY, uploadedB64); localStorage.setItem(MUSIC_NAME_KEY, musicName); }catch(e){}
+        audioEl.src = uploadedB64; toast('Music loaded: '+musicName);
+        // Try immediate play after user gesture
+        startMusic();
+      };
+      reader.readAsDataURL(file);
+    }
+    function clearMusic(){
+      uploadedB64=null; musicName=null; audioEl.pause(); audioEl.removeAttribute('src'); audioEl.load(); musicOn=false;
+      try{ localStorage.removeItem(MUSIC_KEY); localStorage.removeItem(MUSIC_NAME_KEY);}catch(e){}
+      updateMusicBtn(); toast('Cleared uploaded music');
+    }
+    function startMusic(){
+      if(!audioEl.src){ toast('Upload a music file first.'); return; }
+      audioEl.volume = 0.6;
+      const p = audioEl.play();
+      if(p && typeof p.then === 'function'){
+        p.then(()=> { musicOn=true; updateMusicBtn(); }).catch(()=>{ toast('Click “Music: On” again to allow audio.'); });
+      } else { musicOn=true; updateMusicBtn(); }
+    }
+    function stopMusic(){ audioEl.pause(); musicOn=false; updateMusicBtn(); }
+    function toggleMusic(){ if(musicOn) stopMusic(); else startMusic(); }
+    function updateMusicBtn(){ const b=document.getElementById('btnMusic'); if(b) b.textContent='Music: '+(musicOn?'On':'Off') + (musicName?` — ${musicName}`:''); }
+
+    /************** SFX – “real briefcase” style **************/
+    let audioCtx;
+    function getCtx(){ if(!audioCtx){ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); } return audioCtx; }
+    function playTone(freq=440, dur=0.12, gain=0.05, type='triangle'){ try{ const ctx=getCtx(); const t0=ctx.currentTime; const osc=ctx.createOscillator(); const g=ctx.createGain(); osc.type=type; osc.frequency.value=freq; g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(gain,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0+dur); osc.connect(g).connect(ctx.destination); osc.start(t0); osc.stop(t0+dur);}catch(e){} }
+    function playNoise(dur=0.25, startGain=0.06){ try{ const ctx=getCtx(); const buffer=ctx.createBuffer(1, Math.max(1, ctx.sampleRate*dur), ctx.sampleRate); const data=buffer.getChannelData(0); for(let i=0;i<data.length;i++){ data[i]=(Math.random()*2-1)*0.6; } const src=ctx.createBufferSource(); src.buffer=buffer; const g=ctx.createGain(); const t0=ctx.currentTime; g.gain.setValueAtTime(startGain,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); const filter=ctx.createBiquadFilter(); filter.type='lowpass'; filter.frequency.setValueAtTime(1400,t0); src.connect(filter).connect(g).connect(ctx.destination); src.start(t0); src.stop(t0+dur);}catch(e){} }
+    function clickImpulse(freq=220, gain=0.3){ try{ const ctx=getCtx(); const t=ctx.currentTime; const osc=ctx.createOscillator(); const g=ctx.createGain(); const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1000; osc.type='square'; osc.frequency.setValueAtTime(freq,t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t+0.005); g.gain.exponentialRampToValueAtTime(0.0001, t+0.08); osc.connect(hp).connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.09);}catch(e){} }
+    function hingeCreak(){ try{ const ctx=getCtx(); const t=ctx.currentTime; const osc=ctx.createOscillator(); const g=ctx.createGain(); const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=500; bp.Q.value=5; osc.type='sawtooth'; osc.frequency.setValueAtTime(900,t); osc.frequency.exponentialRampToValueAtTime(120, t+0.28); g.gain.setValueAtTime(0.02, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.32); osc.connect(bp).connect(g).connect(ctx.destination); osc.start(t); osc.stop(t+0.34);}catch(e){} }
+    function airWhoosh(){ try{ const ctx=getCtx(); const buffer=ctx.createBuffer(1, ctx.sampleRate*0.25, ctx.sampleRate); const data=buffer.getChannelData(0); for(let i=0;i<data.length;i++){ data[i]=(Math.random()*2-1)*0.5; } const src=ctx.createBufferSource(); src.buffer=buffer; const g=ctx.createGain(); const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1200; const t=ctx.currentTime; g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(0.0001, t+0.25); src.connect(lp).connect(g).connect(ctx.destination); src.start(t); src.stop(t+0.26);}catch(e){} }
+    function playOpenSound(){ clickImpulse(320,0.35); setTimeout(()=> clickImpulse(260,0.3), 80); setTimeout(()=> airWhoosh(), 60); setTimeout(()=> hingeCreak(), 120); }
+
+    /************** Data / State **************/
+    const TIERS=["LOW","MED","MEDHIGH","HIGH"]; const TIER_LABELS={LOW:"Low", MED:"Med", MEDHIGH:"Med‑High", HIGH:"High"}; const REQUIRED_COUNTS={LOW:4, MED:3, MEDHIGH:2, HIGH:1};
+    let setup=[]; let assignment=[]; let opened=new Set(); let kept=new Set(); let phase='setup';
+    const els={ pyramid:document.getElementById('pyramid'), casesChips:document.getElementById('casesChips'), remainingTiers:document.getElementById('remainingTiers'), openedList:document.getElementById('openedList'), phaseInfo:document.getElementById('phaseInfo'), btnSetup:document.getElementById('btnSetup'), btnNew:document.getElementById('btnNew'), btnReveal:document.getElementById('btnReveal'), btnMusic:document.getElementById('btnMusic'), hint:document.getElementById('hint'), toast:document.getElementById('toast'), setupDlg:document.getElementById('setupDlg'), closeSetup:document.getElementById('closeSetup'), setupRows:document.getElementById('setupRows'), countsBar:document.getElementById('countsBar'), saveSetup:document.getElementById('saveSetup'), resetDefault:document.getElementById('resetDefault'), exportSetup:document.getElementById('exportSetup'), importSetup:document.getElementById('importSetup'), overlay:document.getElementById('overlay'), musicFile:document.getElementById('musicFile'), btnClearMusic:document.getElementById('btnClearMusic') };
+    const lsKey='dond2_setup_v1';
+
+    function saveLocal(){ try{ localStorage.setItem(lsKey, JSON.stringify(setup)); }catch(e){} }
+    function loadLocal(){ try{ const raw=localStorage.getItem(lsKey); if(raw){ const arr=JSON.parse(raw); if(Array.isArray(arr)&&arr.length===10){ setup=arr; return true; } } }catch(e){} return false; }
+    function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+    function toast(msg,ms=1600){ els.toast.textContent=msg; els.toast.style.display='block'; setTimeout(()=> els.toast.style.display='none', ms); }
+
+    function defaultSetup(){ const def=[]; const make=(tier,n,base)=>{ for(let i=1;i<=n;i++){ def.push({label:`${base} ${i}`, tier, imgData:''}); } }; make('LOW',4,'Low Gift'); make('MED',3,'Medium Gift'); make('MEDHIGH',2,'Med‑High Gift'); make('HIGH',1,'Grand Prize'); return def; }
+    function countByTier(list){ const c={LOW:0,MED:0,MEDHIGH:0,HIGH:0}; for(const x of list){ if(c[x.tier]!=null) c[x.tier]++; } return c; }
+    function validateSetup(list){ if(!Array.isArray(list)||list.length!==10) return {ok:false, reason:'Need exactly 10 items.'}; const counts=countByTier(list); for(const t of TIERS){ if(counts[t]!==REQUIRED_COUNTS[t]) return {ok:false, reason:`${TIER_LABELS[t]} must be ${REQUIRED_COUNTS[t]} (currently ${counts[t]}).`}; } for(let i=0;i<list.length;i++){ if(!list[i].label||!list[i].label.trim()) return {ok:false, reason:`Missing label for row ${i+1}.`}; } return {ok:true}; }
+
+    function renderSidebar(){ let phaseText=''; if(phase==='chooseKept') phaseText='Phase: Choose your TWO cases to keep'; else if(phase==='openCases') phaseText='Phase: Open the remaining cases'; else if(phase==='finished') phaseText='Phase: Finished – reveal complete'; else phaseText='Phase: Setup'; els.phaseInfo.textContent=phaseText; const remainCounts=countByTier(assignment.filter((_,i)=>!opened.has(i))); els.remainingTiers.innerHTML=''; for(const t of TIERS){ const div=document.createElement('div'); div.className='row'; const b=document.createElement('span'); b.className=`badge ${t}`; b.textContent=`${TIER_LABELS[t]} remaining: ${remainCounts[t]}`; div.appendChild(b); els.remainingTiers.appendChild(div);} els.casesChips.innerHTML=''; for(let i=0;i<10;i++){ const chip=document.createElement('div'); chip.className='chip'; if(opened.has(i)) chip.classList.add('open'); if(kept.has(i)) chip.classList.add('kept'); chip.textContent=(i+1); els.casesChips.appendChild(chip);} els.openedList.innerHTML=''; for(const i of [...opened].sort((a,b)=>a-b)){ const p=assignment[i]; const wrap=document.createElement('div'); wrap.className='row'; const a=document.createElement('span'); a.className=`badge ${p.tier}`; a.textContent=`${TIER_LABELS[p.tier]} – ${p.label}`; wrap.appendChild(a); els.openedList.appendChild(wrap);} const unopened=10-opened.size-kept.size; els.btnReveal.disabled=!(phase==='openCases' && unopened===0 && kept.size===2); }
+
+    function briefcaseSVG(){ return `<svg class="brief-svg" width="96" height="76" viewBox="0 0 128 104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="24" width="112" height="72" rx="10" fill="#1b2350" stroke="#3a4aa0" stroke-width="2"/><rect x="44" y="10" width="40" height="12" rx="4" fill="#1b2350" stroke="#3a4aa0" stroke-width="2"/><path d="M16 44h96" stroke="#5b6bd6" stroke-width="2" stroke-linecap="round"/></svg>`; }
+
+    function renderPyramid(){ els.pyramid.innerHTML=''; const layout=[1,2,3,4]; let idx=0; for(const n of layout){ const row=document.createElement('div'); row.className='row'; for(let j=0;j<n;j++){ const i=idx; const c=document.createElement('div'); c.className='case'; if(opened.has(i)) c.classList.add('opened'); if(kept.has(i) && !opened.has(i)){ const k=document.createElement('div'); k.className='keepTag'; k.textContent='KEPT'; c.appendChild(k);} const inner=document.createElement('div'); inner.className='card-inner'; const front=document.createElement('div'); front.className='card-face face-front'; front.innerHTML=briefcaseSVG(); const back=document.createElement('div'); back.className='card-face face-back'; const prize=assignment[i]; if(prize){ if(prize.imgData){ const img=document.createElement('img'); img.className='prize-img'; img.src=prize.imgData; back.appendChild(img);} const lbl=document.createElement('div'); lbl.className='prize-label'; lbl.textContent=prize.label; back.appendChild(lbl); const pill=document.createElement('div'); pill.className=`pill ${prize.tier}`; pill.textContent=TIER_LABELS[prize.tier]; back.appendChild(pill);} inner.appendChild(front); inner.appendChild(back); c.appendChild(inner); const num=document.createElement('div'); num.className='num'; num.textContent=(i+1); c.appendChild(num); c.addEventListener('click', ()=> onCaseClick(i)); row.appendChild(c); idx++; } els.pyramid.appendChild(row);} }
+
+    // ---- Visible shuffle: ghosts move from old to new DOM positions ----
+    function createGhost(r){ const g=document.createElement('div'); g.className='ghost'; g.style.left=r.left+'px'; g.style.top=r.top+'px'; g.style.width=r.width+'px'; g.style.height=r.height+'px'; const inner=document.createElement('div'); inner.className='inner'; inner.innerHTML=briefcaseSVG(); g.appendChild(inner); return g; }
+    function shuffleWithAnimation(){
+      const nodes=[...els.pyramid.querySelectorAll('.case')];
+      if(nodes.length!==10){ assignment=shuffle(setup.map(x=>({...x}))); renderAll(); return; }
+      const oldRects=nodes.map(n=> n.getBoundingClientRect());
+      els.overlay.innerHTML='';
+      const ghosts=oldRects.map(r=>{ const g=createGhost(r); els.overlay.appendChild(g); return g; });
+      nodes.forEach(n=> n.style.visibility='hidden');
+      // new assignment + render to get new positions
+      assignment = shuffle(setup.map(x=> ({...x})));
+      renderPyramid();
+      const newNodes=[...els.pyramid.querySelectorAll('.case')];
+      const newRects=newNodes.map(n=> n.getBoundingClientRect());
+      ghosts.forEach((g,i)=>{ const from=oldRects[i]; const to=newRects[i]; const dx=to.left-from.left; const dy=to.top-from.top; g.style.transition='transform 0.9s cubic-bezier(.2,.8,.2,1)'; requestAnimationFrame(()=>{ g.style.transform=`translate(${dx}px, ${dy}px)`; }); });
+      setTimeout(()=>{ els.overlay.innerHTML=''; newNodes.forEach(n=> n.style.visibility='visible'); renderSidebar(); }, 950);
+    }
+
+    // -------- Game flow --------
+    function startNewGame(){ const v=validateSetup(setup); if(!v.ok){ toast('Fix setup before starting: '+v.reason, 2000); return; } opened.clear(); kept.clear(); phase='chooseKept'; els.hint.textContent='Select TWO cases to keep (click any two cases).'; if(!assignment||assignment.length!==10){ assignment=setup.map(x=>({...x})); renderAll(); } shuffleWithAnimation(); renderSidebar(); if(uploadedB64){ startMusic(); } }
+    function onCaseClick(i){ if(!assignment[i]) return; if(phase==='chooseKept'){ if(opened.has(i)) return; if(kept.has(i)){ kept.delete(i);} else { if(kept.size>=2){ toast('You already kept two cases.'); return;} kept.add(i); if(kept.size===2){ phase='openCases'; els.hint.textContent='Open all remaining cases (your kept two will be revealed at the end).'; } } renderAll(); return; } if(phase==='openCases'){ if(kept.has(i)){ toast('This is one of your kept cases. Reveal them at the end.'); return;} if(opened.has(i)) return; opened.add(i); playOpenSound(); renderAll(); const unopenedNonKept=assignment.filter((_,idx)=> !opened.has(idx)&&!kept.has(idx)).length; if(unopenedNonKept===0){ els.hint.textContent='All other cases opened. Click “Reveal kept cases”.'; renderSidebar(); } return; } }
+    function revealKept(){ if(!(kept.size===2)) return; for(const i of kept){ opened.add(i);} playOpenSound(); phase='finished'; els.hint.textContent='Game finished. Start a new game to play again.'; renderAll(); }
+    function renderAll(){ renderPyramid(); renderSidebar(); }
+
+    // -------- Setup dialog --------
+    function openSetup(){ populateSetupEditor(); els.setupDlg.showModal(); }
+    function closeSetup(){ els.setupDlg.close(); }
+    function populateSetupEditor(){ updateCountsBar(setup); const wrap=document.createElement('div'); wrap.style.display='grid'; wrap.style.gridTemplateColumns='60px 1fr 140px 120px 120px'; wrap.style.gap='10px'; wrap.style.alignItems='center'; setup.forEach((item,idx)=>{ wrap.appendChild(cell(idx+1)); const labelIn=document.createElement('input'); labelIn.type='text'; labelIn.value=item.label; labelIn.addEventListener('input', e=> item.label=e.target.value); wrap.appendChild(labelIn); const sel=document.createElement('select'); for(const t of TIERS){ const opt=document.createElement('option'); opt.value=t; opt.textContent=TIER_LABELS[t]; if(item.tier===t) opt.selected=true; sel.appendChild(opt);} sel.addEventListener('change', e=>{ item.tier=e.target.value; updateCountsBar(setup); }); wrap.appendChild(sel); const file=document.createElement('input'); file.type='file'; file.accept='image/*'; const fileWrap=document.createElement('div'); fileWrap.appendChild(file); wrap.appendChild(fileWrap); const rowPreview=document.createElement('img'); rowPreview.style.width='100%'; rowPreview.style.maxHeight='64px'; rowPreview.style.objectFit='contain'; rowPreview.style.borderRadius='8px'; rowPreview.src=item.imgData||''; wrap.appendChild(rowPreview); file.addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload = ev=>{ item.imgData=String(ev.target.result); rowPreview.src=item.imgData; }; reader.readAsDataURL(f); }); }); els.setupRows.innerHTML=''; els.setupRows.appendChild(wrap); }
+    function cell(text){ const d=document.createElement('div'); d.textContent=text; return d; }
+    function updateCountsBar(list){ const counts=countByTier(list); els.countsBar.innerHTML=''; for(const t of TIERS){ const need=REQUIRED_COUNTS[t]; const now=counts[t]; const span=document.createElement('span'); span.className=`badge ${t}`; span.textContent=`${TIER_LABELS[t]}: ${now}/${need}`; if(need!==now) span.style.color='#fecaca'; els.countsBar.appendChild(span);} }
+    function saveSetupFromDialog(){ const v=validateSetup(setup); if(!v.ok){ toast('Cannot save: '+v.reason,2000); updateCountsBar(setup); return; } saveLocal(); toast('Setup saved'); }
+    function resetToDefault(){ setup=defaultSetup(); saveLocal(); populateSetupEditor(); renderAll(); toast('Reset to default prizes'); }
+    function exportSetup(){ const blob=new Blob([JSON.stringify(setup,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='deal2_setup.json'; a.click(); URL.revokeObjectURL(a.href); }
+    function importSetup(file){ const reader=new FileReader(); reader.onload = ev=>{ try{ const obj=JSON.parse(String(ev.target.result)); const v=validateSetup(obj); if(!v.ok) throw new Error(v.reason); setup=obj; saveLocal(); populateSetupEditor(); renderAll(); toast('Imported setup ✅'); }catch(e){ toast('Import failed: '+e.message, 2200);} }; reader.readAsText(file); }
+
+    // -------- Wiring --------
+    els.btnSetup.addEventListener('click', openSetup);
+    els.closeSetup.addEventListener('click', closeSetup);
+    els.saveSetup.addEventListener('click', saveSetupFromDialog);
+    els.resetDefault.addEventListener('click', resetToDefault);
+    els.exportSetup.addEventListener('click', exportSetup);
+    els.importSetup.addEventListener('change', (e)=>{ const f=e.target.files&&e.target.files[0]; if(f) importSetup(f); e.target.value=''; });
+    els.btnNew.addEventListener('click', startNewGame);
+    els.btnReveal.addEventListener('click', revealKept);
+    els.btnMusic.addEventListener('click', toggleMusic);
+    els.musicFile.addEventListener('change', (e)=>{ const f=e.target.files&&e.target.files[0]; if(f) setMusicFromFile(f); e.target.value=''; });
+    els.btnClearMusic.addEventListener('click', clearMusic);
+
+    // -------- Init --------
+    (function init(){ try{ if(!loadLocal()) setup=defaultSetup(); assignment=setup.map(x=>({...x})); phase='setup'; loadSavedMusic(); els.hint.textContent='Edit prizes, upload your music, then Start new game to shuffle. Music loops automatically.'; renderAll(); updateMusicBtn(); }catch(e){ document.body.innerHTML = '<pre style="padding:16px">Init error: '+(e&&e.message?e.message:e)+'</pre>'; } })();
+  </script>
+</body>
+</html>
